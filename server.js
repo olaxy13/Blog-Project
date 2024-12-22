@@ -7,7 +7,7 @@ const bodyParser = require('body-parser');
 const app = express();
 
 // MongoDB Connection
-mongoose.connect('mongodb+srv://laxy:olamide.13@cluster0.8fwdo.mongodb.net/', { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect('mongodb+srv://olaxy:olamide.13@cluster0.8fwdo.mongodb.net/', { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
 

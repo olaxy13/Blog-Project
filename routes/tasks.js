@@ -1,5 +1,5 @@
 const express = require('express');
-const Task = require('../models/Task');
+const Task = require('../models/Blog');
 const router = express.Router();
 const isAuthenticated = require('../middleware/auth'); // Custom middleware to check user session
 const taskController = require("../controllers/task") ;
