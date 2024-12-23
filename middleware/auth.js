@@ -2,7 +2,8 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const SECRET_KEY = process.env.SECRET_KEY ;
 
-const = isAuthenticated(req, res, next) => {
+const  isAuthenticated = async(req, res, next) => {
+
     const token = req.cookies?.authToken || req.headers['authorization']?.split(' ')[1];
     console.log('Cookies:', req.cookies);
 
@@ -18,9 +19,10 @@ const = isAuthenticated(req, res, next) => {
         next();
     } catch (error) {
       console.log('Token Error.', error.message);
+      res.status(401).json({ message: 'Invalid or expired token' });
     return res.redirect('/login'); // Redirect if token is invalid
-        res.status(401).json({ message: 'Invalid or expired token' });
+       
     }
 }
-
+    
 module.exports = isAuthenticated;

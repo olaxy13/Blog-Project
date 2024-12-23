@@ -1,6 +1,6 @@
 const express = require('express')
-const Article = require('../models/article')
-const Author = require('../models/author')
+const Blog = require('../models/Blog')
+const User = require('../models/User')
 const adminLayout = '../views/layouts/admin'
 const loginRegisterLayout = '../views/layouts/login_register'
 const adminHomeLayout = '../views/layouts/admin-home'
@@ -9,31 +9,27 @@ const jwt = require('jsonwebtoken')
 const authenticate = require('../middlewares/authentication')
 
 
-const register = (req, res, next) => {
+const register = async (req, res, next) => {
     try {
         let userInfo = req.body;
 
         if(!userInfo) {
-            return res.render('admin/register', {
-                errorMessage: 'All fields are required',
-                layout: loginRegisterLayout,
-              })
-        }
+            return res.status(400).json({ message:"All fields are required"})   
+          }
         const { email } = userInfo
         const checkEmail = await Author.findOne({ email })
     
      if (checkEmail) {
-        return res.render('admin/register', {
-            errorMessage: 'Email already exists',
-            successMessage: null,
-            layout: loginRegisterLayout,
-          })
+       return res.status(400).json({ message:"Email Already Exist"})
      }
      const hashedPassword = await bcrypt.hash(password, 10)
-     userInfo = {...userInfo, hashedPasswordpassword:}    // If no user exists, proceed to register the user
-     res.status(201).json({ author })
+     userInfo = {...userInfo,  password: hashedPassword}    
+     const newUser = await User.create(userInfo)
+     await newUser.save()
+     res.status(201).json({ message: "User created Successfully", newAuthor })
     }catch (error) {
         console.log(error)
+        res.status(500).json({ message: "An Internal Error Occured", error: error.message });
       }
     }
 
@@ -41,7 +37,7 @@ const register = (req, res, next) => {
 
 
 
-    outer.get('/login', async (req, res) => {
+    router.get('/login', async (req, res) => {
   try {
     const locals = {
       title: 'Login',
@@ -54,69 +50,52 @@ const register = (req, res, next) => {
   }
 })
 
-const login = (req, res, next) => {
+const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
-            return res.render('admin/login', {
-              errorMessage: 'All fields are required',
-              successMessage: null,
-              layout: loginRegisterLayout,
-            })
-          };
+          return res.status(400).json({ message:"All fields are required"})   
+                  };
           console.log(email, password)
-          console.log('Login Request:', { email })
       
-          // Find the user by username
-          const author = await Author.findOne({ email })
-          console.log('User Found:', author)
+          
+          const user = await User.findOne({ email })
+          console.log('User Found:', user)
       
-          if (!author) {
-            return res.render('admin/login', {
-              errorMessage: 'Invalid credentials',
-              successMessage: null,
-              layout: loginRegisterLayout,
-            })
+          if (!user) {
+            return res.status(404).json({ message:"User not found"})   
+        
           }
               // Compare the password with the hashed password in the database
-    const isMatch = await bcrypt.compare(password, author.password)
+    const isMatch = await bcrypt.compare(password, user.password)
     console.log('Password Match:', isMatch)
 
     if (!isMatch) {
-      return res.render('admin/login', {
-        errorMessage: 'Invalid credentials',
-        successMessage: null,
-        layout: loginRegisterLayout,
-      })
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Generate a JWT token
     const token = jwt.sign(
-      { authorId: author._id, email: author.email },
-      process.env.JWT_SECRET,
+      { id: user._id }, process.env.JWT_SECRET,
       {
         expiresIn: '1h',
       }
     ) 
 
     // Store the token in a cookie
-    res.cookie('authToken', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production'|| false,
-      sameSite: 'lax',
-      maxAge: 1 * 60 * 60 * 1000,
-    })
+    // res.cookie('authToken', token, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === 'production'|| false,
+    //   sameSite: 'lax',
+    //   maxAge: 1 * 60 * 60 * 1000,
+    // })
 
     // Redirect to tasks
-    res.redirect('/admin/home')
+    // res.redirect('/admin/home')
 
   } catch (error) {
-    console.error('Error during login:', error.message)
-    res.render('admin/login', {
-      errorMessage: 'Error during login. Please try again.',
-      successMessage: null,
-      layout: loginRegisterLayout,
-    })
+    console.log('Error during login:', error.message)
+    res.status(500).json({ error: error.message });
   }
 }
    
