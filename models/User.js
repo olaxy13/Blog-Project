@@ -22,11 +22,10 @@ const userSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
     lowercase: true,
     minlength: 2,
-    maxlength: 10,
+    maxlength: 15,
   },
   password: {
     type: String,
