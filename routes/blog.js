@@ -7,11 +7,11 @@ console.log("Got here 5")
 const isAuthenticated = require('../middleware/auth'); // Custom middleware to check user session
 
 // GET blogs
+router.get('/forall', isAuthenticated, blogController.getAllBlogUser);
+
 router.get('/',  blogController.getAllBlogs);
 router.get('/:id',  blogController.getBlog);
 
-// 
-router.get('/forall', isAuthenticated, blogController.getAllBlogUser);
 
 // POST blog (add)
  router.post('/create', isAuthenticated, blogController.createBlog);

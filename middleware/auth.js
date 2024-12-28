@@ -34,6 +34,9 @@ const  isAuthenticated = async(req, res, next) => {
             return res.status(401).json({ message: 'Unauthorized access: Malformed token' });
           }
           const decoded = jwt.verify(token, SECRET_KEY);
+          if (!decoded.id) {
+            return res.status(401).json({ message: 'Invalid token: Missing user ID' });
+          }
         //const decoded = await promisify(jwt.verify)(token, SECRET_KEY)
     console.log("DEcoded:", decoded)
         //3) chech if user still exists using the ID in the payload

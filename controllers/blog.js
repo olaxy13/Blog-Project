@@ -10,7 +10,7 @@ const getAllBlogUser = async (req, res, next) => {
     const userID = req.user._id
     console.log("User ID:", userID)
  // Step 1: Validate `req.user`
-  console.log("IT starts", req.user)
+  console.log("IT starts", req.user._id)
   if (!req.user || !req.user._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
     return res.status(400).json({
       status: 'error',
@@ -18,15 +18,15 @@ const getAllBlogUser = async (req, res, next) => {
     });
   }
  
-    const findUser = await User.findById(findUser._id)  
-    console.log("I'm here", findUser._id)
+    const findUser = await User.findById(userID)  
+    console.log("I'm here", findUser._id)  
     if (!findUser) {
       return res.status(404).json({ status: 'error', message: 'User not found' });
     }
     const state = req.query.state || ''; // Default to empty if not provided
-    
+    console.log("State:", state)
     let query = { author: findUser._id }; // Base query to find blogs by the user
-
+console.log("Query:", query)
     //If the state query is provided, filter by the state
     if (state === "all") {
       // Fetch all states (published + drafted)
@@ -82,7 +82,7 @@ currentPage: page
 console.error("An Error Occurred:", error.message);
 res.status(500).json({ message: "An Internal Error Occurred" });
 }
-next()
+
 };
 
 const getAllBlogs =async (req, res, next) => {
@@ -148,8 +148,12 @@ const getAllBlogs =async (req, res, next) => {
 };
 
 const getBlog = async (req, res, next) => {
-  const blogID = req.params.id
-  const blog = await Blog.findById(blogID);
+  const { id } = req.params; // Assuming you're passing `id` as a route parameter.
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid ID format' });
+  }
+  const blog = await Blog.findById(id);
         if(!blog) {
             console.log("Blog", blog)
             return  res.status(404).json({ message: "No blog found with that ID"})
@@ -160,7 +164,7 @@ const getBlog = async (req, res, next) => {
           return  res.status(403).json({ message: "This blog is still a draft"})
         }
 
-        const blogCount = await incrementField(Blog, blogID, "read_count")
+        const blogCount = await incrementField(Blog, id, "read_count")
         blog.read_count = blogCount
         
 
