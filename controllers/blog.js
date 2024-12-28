@@ -1,6 +1,89 @@
 const Blog = require("../models/Blog");
+const User = require("../models/User");
 const calculateReadingTime = require("../utils/readingTime.js")
+const { incrementField } = require("../utils/readCount.js")
+const mongoose = require("mongoose") 
 
+const getAllBlogUser = async (req, res, next) => {
+
+  try {
+    const userID = req.user._id
+    console.log("User ID:", userID)
+ // Step 1: Validate `req.user`
+  console.log("IT starts", req.user)
+  if (!req.user || !req.user._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid user ID',
+    });
+  }
+ 
+    const findUser = await User.findById(findUser._id)  
+    console.log("I'm here", findUser._id)
+    if (!findUser) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+    const state = req.query.state || ''; // Default to empty if not provided
+    
+    let query = { author: findUser._id }; // Base query to find blogs by the user
+
+    //If the state query is provided, filter by the state
+    if (state === "all") {
+      // Fetch all states (published + drafted)
+      query.state = { $in: ['published', 'drafted'] };
+    } else if (state) {
+      // Filter by the specific state provided
+      if (!['published', 'drafted'].includes(state)) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid state filter',
+        });
+      }
+      query.state = state;
+    } else {
+      // Default to both published and drafted
+      query.state = { $in: ['published', 'drafted'] };
+    }
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 20) || 20;
+  const skip = (page - 1) * limit;
+  const sortBy = req.query.sortBy || 'timestamp'; // Field to sort by
+  const order = req.query.order === 'asc' ? 1 : -1; // Sort order
+
+
+  const numBlogs = await Blog.countDocuments(query);
+  if (numBlogs === 0) {
+    return res.status(200).json({
+      status: 'success',
+      results: 0,
+      message: 'No blogs found',
+      data: { blogs: [] }
+    });
+  }
+
+   // Fetch blogs with filtering, pagination, and sorting
+const blogs = await Blog.find(query)
+.populate('author', 'first_name last_name email') // Include author details
+.sort({ [sortBy]: order }) // Apply sorting
+.skip(skip) // Apply pagination
+.limit(limit);
+
+// Respond with paginated and filtered blogs
+res.status(200).json({
+status: 'success',
+results: blogs.length,
+data: {
+blogs,
+totalPages: Math.ceil(numBlogs / limit),
+currentPage: page
+}
+});
+} catch (error) {
+console.error("An Error Occurred:", error.message);
+res.status(500).json({ message: "An Internal Error Occurred" });
+}
+next()
+};
 
 const getAllBlogs =async (req, res, next) => {
         try {
@@ -31,6 +114,16 @@ const getAllBlogs =async (req, res, next) => {
             { author: { $in: users.map(user => user._id) } } // Match author by ID
           ];
         }
+        const numBlogs = await Blog.countDocuments(query);
+        if (numBlogs === 0) {
+          return res.status(200).json({
+            status: 'success',
+            results: 0,
+            message: 'No blogs found',
+            data: { blogs: [] }
+          });
+        }
+
          // Fetch blogs with filtering, pagination, and sorting
     const blogs = await Blog.find(query)
     .populate('author', 'first_name last_name email') // Include author details
@@ -55,11 +148,22 @@ const getAllBlogs =async (req, res, next) => {
 };
 
 const getBlog = async (req, res, next) => {
-        const blog = await Blog.findById(req.params.id);
+  const blogID = req.params.id
+  const blog = await Blog.findById(blogID);
         if(!blog) {
             console.log("Blog", blog)
-        return  next(new AppError("No blog found with that ID", 404))
+            return  res.status(404).json({ message: "No blog found with that ID"})
         }
+        console.log("BLOG STATE:", blog)
+        if(blog.state === "drafted") {
+          console.log("Blog", blog)
+          return  res.status(403).json({ message: "This blog is still a draft"})
+        }
+
+        const blogCount = await incrementField(Blog, blogID, "read_count")
+        blog.read_count = blogCount
+        
+
             res.status(200).json({
                 status: "Success",
                 data: {
@@ -69,25 +173,57 @@ const getBlog = async (req, res, next) => {
     }
 const createBlog = async (req, res, next) => {
         try {
-            const blog = new Blog(req.body);
-          //const blog = new Blog({ ...req.body, author: req.user.id });
+          const { title, body, tags } = req.body;
+          if (!title || !body) {
+            return res.status(400).json({ message: "Title and body are required." });
+          }
+
+          const blog = new Blog({ ...req.body, author: req.user.id });
           blog.reading_time = calculateReadingTime(blog.body);
           await blog.save();
-          res.status(201).json(blog);
+          res.status(201).json({status: "success",
+            message: "Blog created successfully",
+            data: blog,});
         } catch (error) {
-            console.log("An Error Occured", error.message)
-          res.status(400).json({ message: "Internal error message" });
+            console.log("An Error Occured", error)
+          res.status(400).json({ message: "Internal error message here2" });
         }
       };
 const updateBlogStatus = async (req, res, next) => {
         try {
-            const blog = await Blog.findByIdAndUpdate(req.params.id, {status: "published"})
-            
+          
+            const findUser = await User.findById(req.user)
+            if (!findUser) {
+              return res.status(404).json({ message: 'User not found' });
+            }
+            const userID = findUser._id
+            console.log("UsER", userID)
+           // const blog = await Blog.findByIdAndUpdate(req.params.id, {state: 'published'})
+           const blog = await Blog.findById(req.params.id);
+           if (!blog) {
+            return res.status(404).json({ message: 'Blog not found' });
+          }
+           const blogID = blog.author
+            console.log("BLOG", blogID)
             if(!blog) {
-                res.status(404).json({
+              return  res.status(404).json({
                     message: 'Blog not found'
                 });
             }
+          //   if(userID !== blogID) {
+          //    return res.status(404).json({
+          //         message: 'User has no authorization to update this blog'
+          //     });
+          // }
+
+          if (!userID.equals(blogID)) {
+            return res.status(403).json({
+              message: 'User has no authorization to update this blog',
+            });
+          }
+          blog.state = 'published';
+          await blog.save();
+
             res.status(200).json({
                 status: "Success",
                 message: "Blog updated",
@@ -96,34 +232,68 @@ const updateBlogStatus = async (req, res, next) => {
                 }
             })
 
-            res.redirect('/blogs');
+            //res.redirect('/blogs');
         } catch (error) {
-            next(error)
+          console.log("ERror here", error)
+
+           res.status(500).json({ message: "Internal error message here 3"});
+
         }
     }
 
-const deleteBlog = async (req, res, next) => {
-        try {
-            const blog = await Blog.findByIdAndDelete(req.params.id)  
-        if(!blog) {
-            return  next(new AppError("No book found with that ID", 404))
-            }
-            res.status(204).json({
-                status: "success",
-                data: null
-            })
-        res.redirect('/tasks');
-        } catch (error) {
-            console.log("An error Occued", error.message)
-            res.status(500).json({message: "An Internal Error Occured"})
+    const deleteBlog = async (req, res, next) => {
+      try {
+        const blogID = req.params.id
+          const findUser = await User.findById(req.user)
+          if (!findUser) {
+            return res.status(404).json({ message: 'User not found' });
+          }
+          const userID = findUser._id
+          console.log("UsER", userID)
+         // const blog = await Blog.findByIdAndUpdate(req.params.id, {state: 'published'})
+         const blog = await Blog.findById(blogID);
+         if (!blog) {
+          return res.status(404).json({ message: 'Blog not found' });
+        }
+         const blogAuthorID = blog.author
+          console.log("BLOG", blogAuthorID)
+          if(!blog) {
+            return  res.status(404).json({
+                  message: 'Blog not found'
+              });
+          }
+        //   if(userID !== blogID) {
+        //    return res.status(404).json({
+        //         message: 'User has no authorization to update this blog'
+        //     });
+        // }
+
+        if (!userID.equals(blogAuthorID)) {
+          return res.status(403).json({
+            message: 'User has no authorization to update this blog',
+          });
         }
         
+        await Blog.deleteOne({_id: blogID});
 
-    }
+          res.status(200).json({
+              status: "Success",
+              message: "Blog Deleted",
+              data: null          })
+
+          //res.redirect('/blogs');
+      } catch (error) {
+        console.log("ERror here", error)
+
+         res.status(500).json({ message: "Internal error message here 3"});
+
+      }
+  }
     
 
     module.exports = {
-        getAllBlogs,
+      getAllBlogUser, 
+      getAllBlogs,
         getBlog,
         createBlog,
         updateBlogStatus,

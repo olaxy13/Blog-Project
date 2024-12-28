@@ -26,13 +26,14 @@ app.use('/user', userRoutes);
 
 // Routes (blogs)
 const blogRoutes = require('./routes/blog');
+
 app.use('/blogs', blogRoutes);
 
 // Error Handling
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something went wrong!');
-  next()
+  console.log("Error FROM SERVER:",err);
+  res.status(500).json({error: err.message});
+  //next()
 });
 
 app.listen(3000, () => console.log('Server running on port 3000'));

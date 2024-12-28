@@ -1,20 +1,26 @@
+console.log("Got here 4")
 const express = require('express');
-const Blog = require('../models/Blog');
-const router = express.Router();
-const isAuthenticated = require('../middleware/auth'); // Custom middleware to check user session
 const blogController = require("../controllers/blog") ;
 
+const router = express.Router();
+console.log("Got here 5")
+const isAuthenticated = require('../middleware/auth'); // Custom middleware to check user session
+
 // GET blogs
-router.get('/', isAuthenticated, blogController.getAllBlogs);
+router.get('/',  blogController.getAllBlogs);
+router.get('/:id',  blogController.getBlog);
+
+// 
+router.get('/forall', isAuthenticated, blogController.getAllBlogUser);
 
 // POST blog (add)
  router.post('/create', isAuthenticated, blogController.createBlog);
 
 // PUT blog (mark as completed)
-router.put('/:id/complete', isAuthenticated, blogController.updateBlogStatus);
+router.put('/:id', isAuthenticated, blogController.updateBlogStatus);
 
 // DELETE blog
-router.delete('/:id/delete', isAuthenticated, blogController.deleteBlog);
+router.delete('/:id', isAuthenticated, blogController.deleteBlog);
 
 
 

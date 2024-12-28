@@ -5,6 +5,7 @@ const blogSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
+    unique: true
   },
   description: {
     type: String,
@@ -22,12 +23,11 @@ const blogSchema = new mongoose.Schema({
   author: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // Links to the User 
-    required: true,
-  },
+     },
   state: {
     type: String,
-    enum: ['Drafted', 'Published'], // allowed states
-    default: 'Drafted',
+    enum: ['drafted', 'published'], // allowed states
+    default: 'drafted',
   },
   read_count: {
     type: Number,
@@ -35,8 +35,7 @@ const blogSchema = new mongoose.Schema({
   },
   reading_time: {
     type: String, // Estimated time to read the article
-    required: true,
-  },
+      },
  }, {
 timestamps: true
 });
