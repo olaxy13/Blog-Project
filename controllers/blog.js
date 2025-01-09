@@ -142,7 +142,7 @@ const getAllBlogs =async (req, res, next) => {
     }
   });
 } catch (error) {
-    console.error("An Error Occurred:", error.message);
+    console.log("An Error Occurred:", error.message);
     res.status(500).json({ message: "An Internal Error Occurred" });
   }
 };

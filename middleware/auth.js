@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require("../models/User")
 const { promisify } = require("util");
 require('dotenv').config();
@@ -34,21 +35,23 @@ const  isAuthenticated = async(req, res, next) => {
             return res.status(401).json({ message: 'Unauthorized access: Malformed token' });
           }
           const decoded = jwt.verify(token, SECRET_KEY);
+          console.log("Decoded Token:", decoded);
           if (!decoded.id) {
+            console.log('Token is missing user ID.');
             return res.status(401).json({ message: 'Invalid token: Missing user ID' });
           }
         //const decoded = await promisify(jwt.verify)(token, SECRET_KEY)
-    console.log("DEcoded:", decoded)
+    console.log("DEcoded:", decoded.id)
+    const userId = decoded.id
         //3) chech if user still exists using the ID in the payload
-        const currentUser = await User.findById(decoded.id);
-        console.log("Current userID:", currentUser._id)
+        const currentUser = await User.findById(userId);
+        console.log("Current userID:", currentUser)
         if(!currentUser) { 
-            res.status(401).json({ message: "The User belonging to this token no longer exist", })
+          return  res.status(401).json({ message: "The User belonging to this token no longer exist", })
         }
-    console.log("I'm workinggggg", currentUser)
+    //console.log("Current User", currentUser._id)
        req.user = currentUser
-       console.log("I'm workinggggg", req.user._id)
-         next()
+       next()
     }
        
      catch (error) {
