@@ -1,0 +1,17 @@
+<h1>Your Tasks</h1>
+<ul>
+  <% tasks.forEach(task => { %>
+    <li>
+      <%= task.title %> - <%= task.status %>
+      <% if (task.status !== 'completed') { %>
+        <a href="/tasks/<%= task._id %>/complete">Mark as Completed</a>
+      <% } %>
+      <a href="/tasks/<%= task._id %>/delete">Delete</a>
+    </li>
+  <% }) %>
+</ul>
+
+<form action="/tasks/add" method="POST">
+  <input type="text" name="title" placeholder="New Task" required />
+  <button type="submit">Add Task</button>
+</form>
